@@ -1,0 +1,4 @@
+env
+__pycache__
+gsheetsAPI/creds.json
+telebot/config.py
