@@ -3,7 +3,7 @@ from pprint import pprint
 import googleapiclient.discovery
 from oauth2client.service_account import ServiceAccountCredentials
 
-CREDENTIALS_FILE = 'creds.json'
+CREDENTIALS_FILE = 'gsheetsAPI/creds.json'
 spreadsheet_id = '1HtUXsOeRbGEy9r-FyMl1ahNAtbDRwPufKhAcQiEK5FA'
 
 creds = ServiceAccountCredentials.from_json_keyfile_name(
