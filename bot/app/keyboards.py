@@ -1,15 +1,11 @@
-from aiogram.types import (InlineKeyboardButton,InlineKeyboardMarkup,
-                            ReplyKeyboardMarkup,KeyboardButton)
+from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
+                           ReplyKeyboardMarkup, KeyboardButton)
 
-# TODO: Have to meet code style conventions decared in PEP
 main = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text = 'help')],
-    [KeyboardButton(text = 'Hello!'),KeyboardButton(text = 'Bye!')]
+    [KeyboardButton(text='Send photo')]
+], resize_keyboard=True, input_field_placeholder="Choose option")
+
+inline = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text='Google', url='https://google.com')],
+    [InlineKeyboardButton(text='Youtube', url='https://youtube.com')]
 ])
-
-inline = InlineKeyboardMarkup ( inline_keyboard=[
-    [InlineKeyboardButton(text='Google',url = 'google.com')],
-    [InlineKeyboardButton(text='Youtube', url='youtube.com')]
-
-])
-
