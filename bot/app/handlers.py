@@ -1,22 +1,34 @@
-from xml.etree.ElementTree import tostring
-
+from os import getenv
 from aiogram import Router,F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from aiogram.enums import ParseMode
+from dotenv import load_dotenv
+
 import bot.app.keyboards as kb
 import bot.app.resources as rs
 from datetime import datetime
 from bot.app.resources import to_key
+from aiohttp import ClientSession
+from aiogram import types
 #import re
+import requests
+import random
 
 #region Variables
 router = Router()
 day_offset = 0 # offset for schedulev2
-def normalize_offset(offset):
-    return (offset % 7 + 7) % 7
 #endregion
 
+#region Google API setup
+load_dotenv()
+API_KEY = getenv('GOOGLE_TOKEN')
+CX = getenv('SE_ID')
+SEARCH_PROMPTS = ['funny kitten photo', 'kitten sunbathing photo', 'kittens photo', 'kitten jumping photo']
+#endreggion
+
+def normalize_offset(offset):
+    return (offset % 7 + 7) % 7
 
 #region Mundane handlers
 @router.message(CommandStart())
@@ -98,6 +110,45 @@ async def next_day(callback: CallbackQuery):
         caption=f"Schedule for {day_of_week.capitalize()}",
         reply_markup=kb.np_weekdays
     )
+#endregion
+
+
+#region Unnecessary
+async def get_random_kitten_image():
+    prompt = random.choice(SEARCH_PROMPTS)
+    url = f'https://www.googleapis.com/customsearch/v1?q={prompt}&key={API_KEY}&cx={CX}&searchType=image'
+
+    async with ClientSession() as session:
+        async with session.get(url) as response:
+            data = await response.json()
+            items = data.get('items', [])
+            if items:
+                image = random.choice(items)
+                return image['link']
+            else:
+                return "No images found"
+
+def is_cat_keyword(message: types.Message, keywords: list) -> bool:
+    return any(keyword in message.text.upper() for keyword in keywords)
+
+cat_keys = ['CAT','KITTEN','KITTY','CATS','KITTENS']
+@router.message(lambda message: is_cat_keyword(message, cat_keys))
+async def kitten_send(message: Message):
+    image_url = await get_random_kitten_image()
+    if image_url.startswith("http"):
+        try:
+            async with ClientSession() as session:
+                async with session.get(image_url) as response:
+                    if response.status == 200:
+                        await message.reply_photo(image_url)
+                    else:
+                        await message.reply("Image URL is not accessible")
+        except Exception as e:
+            await message.reply(f"Error fetching image: {e}")
+    else:
+        await message.reply(image_url)
+
+
 #endregion
 
 
