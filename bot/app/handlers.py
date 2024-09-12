@@ -4,19 +4,22 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
-
 import bot.app.keyboards as kb
 import bot.app.resources as rs
+
 from datetime import datetime
 from bot.app.resources import to_key
 from aiohttp import ClientSession
 from aiogram import types
+from bot.config import fetch_image_url
+
 #import re
 import requests
 import random
 
 #region Variables
 router = Router()
+global session
 day_offset = 0 # offset for schedulev2
 #endregion
 
@@ -152,35 +155,21 @@ async def next_day(callback: CallbackQuery):
 
 
 #region Unnecessary
-async def get_random_kitten_image():
-    prompt = random.choice(SEARCH_PROMPTS)
-    url = f'https://www.googleapis.com/customsearch/v1?q={prompt}&key={API_KEY}&cx={CX}&searchType=image&start={random.randint(1, 10) * 10}'
-
-    async with ClientSession() as session:
-        async with session.get(url) as response:
-            data = await response.json()
-            items = data.get('items', [])
-            if items:
-                image = random.choice(items)
-                return image['link']
-            else:
-                return "No images found"
-
 def is_cat_keyword(message: types.Message, keywords: list) -> bool:
     return any(keyword in message.text.upper() for keyword in keywords)
 
 cat_keys = ['CAT','KITTEN','KITTY','CATS','KITTENS']
 @router.message(lambda message: is_cat_keyword(message, cat_keys))
-async def kitten_send(message: Message):
-    image_url = await get_random_kitten_image()
+async def kitten_send(message: types.Message):
+    prompt = random.choice(SEARCH_PROMPTS)
+    image_url = await fetch_image_url(session,prompt, API_KEY, CX)
     if image_url.startswith("http"):
         try:
-            async with ClientSession() as session:
-                async with session.get(image_url) as response:
-                    if response.status == 200:
-                        await message.reply_photo(image_url)
-                    else:
-                        await message.reply("Image URL is not accessible")
+            async with session.get(image_url) as response:
+                if response.status == 200:
+                    await message.reply_photo(image_url)
+                else:
+                    await message.reply("Image URL is not accessible")
         except Exception as e:
             await message.reply(f"Error fetching image: {e}")
     else:
