@@ -24,7 +24,45 @@ day_offset = 0 # offset for schedulev2
 load_dotenv()
 API_KEY = getenv('GOOGLE_TOKEN')
 CX = getenv('SE_ID')
-SEARCH_PROMPTS = ['funny kitten photo', 'kitten sunbathing photo', 'kittens photo', 'kitten jumping photo']
+SEARCH_PROMPTS = [
+    'cute kitten photo',
+    'kitten playing photo',
+    'kitten with toy photo',
+    'kitten napping photo',
+    'kitten face close-up photo',
+    'kitten in basket photo',
+    'kitten and puppy photo',
+    'kitten exploring photo',
+    'kitten in costume photo',
+    'kitten and cat photo',
+    'kitten family photo',
+    'kitten cuddle photo',
+    'cute kitten',
+    'kitten playing',
+    'kitten with toy',
+    'kitten napping',
+    'kitten face close-up',
+    'kitten in basket',
+    'kitten and puppy',
+    'kitten exploring',
+    'kitten in costume',
+    'kitten and cat',
+    'kitten family',
+    'kitten cuddle',
+    'cute cat',
+    'cat playing',
+    'cat with toy',
+    'cat napping',
+    'cat face close-up',
+    'cat in basket',
+    'cat and puppy',
+    'cat exploring',
+    'cat in costume',
+    'cat and kitten',
+    'cat family',
+    'cat cuddle'
+]
+
 #endreggion
 
 def normalize_offset(offset):
@@ -35,7 +73,7 @@ def normalize_offset(offset):
 async def welcome_msg(message: Message):
     user_name = message.from_user.first_name
     current_time = datetime.now().strftime('%H:%M')
-    await message.answer(f"Hello, {user_name}! It's {current_time} — welcome!", reply_markup=kb.main)
+    await message.answer(f"Hello, {user_name}!\n It's {current_time} — welcome!", reply_markup=kb.main)
 
 @router.message(F.text.upper() == 'TEST')
 async def help(message: Message):
@@ -116,7 +154,7 @@ async def next_day(callback: CallbackQuery):
 #region Unnecessary
 async def get_random_kitten_image():
     prompt = random.choice(SEARCH_PROMPTS)
-    url = f'https://www.googleapis.com/customsearch/v1?q={prompt}&key={API_KEY}&cx={CX}&searchType=image'
+    url = f'https://www.googleapis.com/customsearch/v1?q={prompt}&key={API_KEY}&cx={CX}&searchType=image&start={random.randint(1, 10) * 10}'
 
     async with ClientSession() as session:
         async with session.get(url) as response:
