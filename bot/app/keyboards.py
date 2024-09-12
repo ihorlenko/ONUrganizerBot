@@ -3,7 +3,7 @@ from aiogram.types import (InlineKeyboardButton, InlineKeyboardMarkup,
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 main = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text='Send photo')]
+    [KeyboardButton(text='Schedule')]
 ], resize_keyboard=True, input_field_placeholder="Choose option")
 
 inline = InlineKeyboardMarkup(inline_keyboard=[
