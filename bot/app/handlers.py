@@ -14,14 +14,18 @@ from aiogram import types
 #import re
 import requests
 import random
+import asyncio
+
 
 #region Variables
 router = Router()
 day_offset = 0 # offset for schedulev2
+MAX_RETRIES = 3
 #endregion
 
 #region Google API setup
 load_dotenv()
+
 API_KEY = getenv('GOOGLE_TOKEN')
 CX = getenv('SE_ID')
 SEARCH_PROMPTS = [
@@ -153,18 +157,23 @@ async def next_day(callback: CallbackQuery):
 
 #region Unnecessary
 async def get_random_kitten_image():
+
     prompt = random.choice(SEARCH_PROMPTS)
-    url = f'https://www.googleapis.com/customsearch/v1?q={prompt}&key={API_KEY}&cx={CX}&searchType=image&start={random.randint(1, 10) * 10}'
+    url = f'https://www.googleapis.com/customsearch/v1?q={prompt}&key={API_KEY}&cx={CX}&searchType=image&start={random.randint(1, 10) * 2}'
 
     async with ClientSession() as session:
-        async with session.get(url) as response:
-            data = await response.json()
-            items = data.get('items', [])
-            if items:
-                image = random.choice(items)
-                return image['link']
-            else:
-                return "No images found"
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    items = data.get('items', [])
+                    if items:
+                        image = random.choice(items)
+                        return image['link']
+        except Exception as e:
+            print(f"Error fetching image: {e}")
+
+    return "No images found"
 
 def is_cat_keyword(message: types.Message, keywords: list) -> bool:
     return any(keyword in message.text.upper() for keyword in keywords)
@@ -172,19 +181,22 @@ def is_cat_keyword(message: types.Message, keywords: list) -> bool:
 cat_keys = ['CAT','KITTEN','KITTY','CATS','KITTENS']
 @router.message(lambda message: is_cat_keyword(message, cat_keys))
 async def kitten_send(message: Message):
-    image_url = await get_random_kitten_image()
-    if image_url.startswith("http"):
-        try:
-            async with ClientSession() as session:
-                async with session.get(image_url) as response:
-                    if response.status == 200:
-                        await message.reply_photo(image_url)
-                    else:
-                        await message.reply("Image URL is not accessible")
-        except Exception as e:
-            await message.reply(f"Error fetching image: {e}")
-    else:
-        await message.reply(image_url)
+    for _ in range(MAX_RETRIES):
+        image_url = await get_random_kitten_image()
+
+        if image_url.startswith("http"):
+            try:
+                async with ClientSession() as session:
+                    async with session.get(image_url) as response:
+                        if response.status == 200:
+                            await message.reply_photo(image_url)
+                            return
+                        else:
+                            print(f"Image URL not accessible, status code: {response.status}")
+            except Exception as e:
+                print(f"Error fetching image: {e}")
+
+    await message.reply("Failed to retrieve a valid image after multiple attempts.")
 
 
 #endregion
