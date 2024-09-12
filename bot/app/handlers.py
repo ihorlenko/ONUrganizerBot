@@ -6,14 +6,22 @@ from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from aiogram.enums import ParseMode
 import bot.app.keyboards as kb
 import bot.app.resources as rs
+from datetime import datetime
+
+from bot.app.resources import to_key
+
 #import re
 router = Router()
-
-
+day_offset = 0 # offset for schedulev2
+def normalize_offset(offset):
+    return (offset % 7 + 7) % 7
 
 @router.message(CommandStart())
 async def welcome_msg(message: Message):
-    await message.answer("Greetings!", reply_markup = kb.main)
+    user_name = message.from_user.first_name
+    current_time = datetime.now().strftime('%H:%M')
+    await message.answer(f"Hello, {user_name}! It's {current_time} — welcome!", reply_markup=kb.main)
+
 
 @router.message(F.text.upper() == 'TEST')
 async def help(message: Message):
@@ -31,6 +39,12 @@ async def help_command(message: Message):
     await message.reply('Help Placeholder', reply_markup=kb.inline)
 
 
+@router.message(F.text.upper() == 'BYE')
+async def bye_command(message: Message):
+    await message.reply_sticker("CAACAgIAAxkBAAEFgZZjAAGIEnFk7nzv_wGBIfFyGHdS_XsAAhYAAwC5MAEl49O0W54M1R8E")
+    await message.reply("Fare thee well, foreordained straggler")
+
+
 @router.message(F.text.upper() == 'SCHEDULE' )
 async def schedule_command(message: Message):
     await message.answer_photo(rs.days_id["the week"],
@@ -41,8 +55,9 @@ async def schedule_command(message: Message):
 async def photo_id(message: Message):
     await message.answer(f'ID: {message.photo[-1].file_id}')
 
-@router.callback_query(F.data.in_(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'the week'] ))
-async def monday(callback: CallbackQuery):
+
+@router.callback_query(F.data.in_(rs.days_id.keys() ))
+async def schedule_reply(callback: CallbackQuery):
     day = callback.data
     media = InputMediaPhoto(media=rs.days_id[day])
     await callback.answer(f'Displaying the schedule for {day.lower()}',show_alert=False)
@@ -51,6 +66,44 @@ async def monday(callback: CallbackQuery):
         caption = f"Schedule for {day.capitalize()}",
         reply_markup = await kb.inline_days()
     )
+
+
+@router.message(F.text.upper() == 'SCHEDULEV2')
+async def schedule_command(message: Message):
+    day_of_week = rs.to_key[datetime.today().weekday()]
+    await message.answer_photo(rs.days_id[day_of_week],
+                        reply_markup = kb.np_weekdays)
+
+
+@router.callback_query(F.data == 'next')
+async def next_day( callback: CallbackQuery):
+    global day_offset
+    day_offset = normalize_offset(day_offset + 1)
+
+    current_weekday = datetime.today().weekday()
+    day_of_week = to_key[(current_weekday + day_offset) % 7]
+
+    media = InputMediaPhoto(media=rs.days_id[day_of_week])
+    await callback.message.edit_media(
+        media=media,
+        caption = f"Schedule for {day_of_week.capitalize()}",
+        reply_markup=kb.np_weekdays
+    )
+
+@router.callback_query(F.data == 'prev')
+async def next_day(callback: CallbackQuery):
+    global day_offset
+    day_offset = normalize_offset(day_offset - 1)
+    current_weekday = datetime.today().weekday()
+    day_of_week = to_key[(current_weekday + day_offset) % 7]
+
+    media = InputMediaPhoto(media=rs.days_id[day_of_week])
+    await callback.message.edit_media(
+        media=media,
+        caption=f"Schedule for {day_of_week.capitalize()}",
+        reply_markup=kb.np_weekdays
+    )
+
 '''
 #for whatever reason this handler was replying to things that other ones should've caught
 @router.message()
