@@ -84,6 +84,8 @@ async def next_day( callback: CallbackQuery):
     day_of_week = to_key[(current_weekday + day_offset) % 7]
 
     media = InputMediaPhoto(media=rs.days_id[day_of_week])
+
+    await callback.answer(f'Displaying the schedule for {day_of_week.lower()}', show_alert=False)
     await callback.message.edit_media(
         media=media,
         caption = f"Schedule for {day_of_week.capitalize()}",
@@ -98,6 +100,7 @@ async def next_day(callback: CallbackQuery):
     day_of_week = to_key[(current_weekday + day_offset) % 7]
 
     media = InputMediaPhoto(media=rs.days_id[day_of_week])
+    await callback.answer(f'Displaying the schedule for {day_of_week.lower()}', show_alert=False)
     await callback.message.edit_media(
         media=media,
         caption=f"Schedule for {day_of_week.capitalize()}",
