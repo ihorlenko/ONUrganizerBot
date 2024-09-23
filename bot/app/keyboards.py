@@ -4,7 +4,6 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
 )
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
 main = ReplyKeyboardMarkup(
@@ -20,17 +19,6 @@ inline = InlineKeyboardMarkup(
     ]
 )
 
-# region Schedule keyboards
-days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "The Week"]
-
-
-async def inline_days():
-    kb = InlineKeyboardBuilder()
-    for day in days:
-        kb.add(InlineKeyboardButton(text=day, callback_data=f"{day.lower()}"))
-    return kb.adjust(2).as_markup()
-
-
 np_weekdays = InlineKeyboardMarkup(
     inline_keyboard=[
         [
@@ -39,4 +27,3 @@ np_weekdays = InlineKeyboardMarkup(
         ]
     ]
 )
-# endregion
