@@ -1,99 +1,57 @@
 from os import getenv
+import random
+import json
+
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
-from aiogram.enums import ParseMode
-from dotenv import load_dotenv
-import bot.app.keyboards as kb
-import bot.app.resources as rs
-
-from datetime import datetime
-from bot.app.resources import to_key
-from aiohttp import ClientSession
 from aiogram import types
+
+from dotenv import load_dotenv
+from datetime import datetime
+
 from bot.config import fetch_image_url
+from .builders import build_inline_days_kb
+import bot.app.keyboards as kb
+from .utils.helpers import str_today, num_to_weekday, normalize_day_offset
 
-# import re
-# import requests
-import random
-
-# region Variables
 router = Router()
 global session
-day_offset = 0  # offset for schedulev2
-# endregion
 
-# region Google API setup
 load_dotenv()
 API_KEY = getenv("GOOGLE_TOKEN")
 CX = getenv("SE_ID")
-SEARCH_PROMPTS = [
-    "cute kitten photo",
-    "kitten playing photo",
-    "kitten with toy photo",
-    "kitten napping photo",
-    "kitten face close-up photo",
-    "kitten in basket photo",
-    "kitten and puppy photo",
-    "kitten exploring photo",
-    "kitten in costume photo",
-    "kitten and cat photo",
-    "kitten family photo",
-    "kitten cuddle photo",
-    "cute kitten",
-    "kitten playing",
-    "kitten with toy",
-    "kitten napping",
-    "kitten face close-up",
-    "kitten in basket",
-    "kitten and puppy",
-    "kitten exploring",
-    "kitten in costume",
-    "kitten and cat",
-    "kitten family",
-    "kitten cuddle",
-    "cute cat",
-    "cat playing",
-    "cat with toy",
-    "cat napping",
-    "cat face close-up",
-    "cat in basket",
-    "cat and puppy",
-    "cat exploring",
-    "cat in costume",
-    "cat and kitten",
-    "cat family",
-    "cat cuddle",
-]
 
-# endreggion
+with open('bot/resources/search_prompts.json', 'r') as f1, \
+        open('bot/resources/days_id.json', 'r') as f2:
+    SEARCH_PROMPTS = json.load(f1)
+    days_map = json.load(f2)
 
 
-def normalize_offset(offset):
-    return (offset % 7 + 7) % 7
-
-
-# region Mundane handlers
 @router.message(CommandStart())
 async def welcome_msg(message: Message):
-    user_name = message.from_user.first_name
-    current_time = datetime.now().strftime("%H:%M")
     await message.answer(
-        f"Hello, {user_name}!\n It's {current_time} — welcome!", reply_markup=kb.main
+        f"Hello, choose one of the options below", reply_markup=kb.main
     )
 
 
-@router.message(F.text.upper() == "TEST")
-async def help(message: Message):
-    await message.reply("TEST Placeholder", reply_markup=kb.main)
+@router.message(F.text.lower() == "schedule")
+async def schedule_command(message: Message):
+    await message.answer_photo(
+        days_map["the week"], reply_markup=await build_inline_days_kb()
+    )
 
 
-@router.message(F.text.upper() == "HELP")
-async def help_command(message: Message):
-    await message.reply("Help Placeholder", reply_markup=kb.inline)
+@router.message(F.text.lower() == "schedulev2")
+async def schedule_command(message: Message):
+    day_of_week = str_today()
+    with open('bot/resources/days_id.json', 'r') as f:
+        day_id = json.load(f).get(day_of_week.lower())
+
+    await message.answer_photo(day_id, reply_markup=kb.np_weekdays)
 
 
-@router.message(F.text.upper() == "BYE")
+@router.message(F.text.lower() == "bye")
 async def bye_command(message: Message):
     await message.reply_sticker(
         "CAACAgIAAxkBAAEFgZZjAAGIEnFk7nzv_wGBIfFyGHdS_XsAAhYAAwC5MAEl49O0W54M1R8E"
@@ -101,51 +59,30 @@ async def bye_command(message: Message):
     await message.reply("Fare thee well, foreordained straggler")
 
 
-# endregion
-
-
-# region ScheduleV1
-@router.message(F.text.upper() == "SCHEDULE")
-async def schedule_command(message: Message):
-    await message.answer_photo(
-        rs.days_id["the week"], reply_markup=await kb.inline_days()
-    )
-
-
 @router.callback_query(
-    F.data.in_(rs.days_id.keys())
+    F.data.in_(days_map.keys())
 )  # the keys are all weekdays + 'the week'
 async def schedule_reply(callback: CallbackQuery):
     day = callback.data
-    media = InputMediaPhoto(media=rs.days_id[day])
+    media = InputMediaPhoto(media=days_map[day])
     await callback.answer(
         f"Displaying the schedule for {day.lower()}", show_alert=False
     )
     await callback.message.edit_media(
         media=media,
         caption=f"Schedule for {day.capitalize()}",
-        reply_markup=await kb.inline_days(),
+        reply_markup=await build_inline_days_kb(),
     )
-
-
-# endregion
-
-
-# region ScheduleV2
-@router.message(F.text.upper() == "SCHEDULEV2")
-async def schedule_command(message: Message):
-    day_of_week = rs.to_key[datetime.today().weekday()]
-    await message.answer_photo(rs.days_id[day_of_week], reply_markup=kb.np_weekdays)
 
 
 @router.callback_query(F.data == "next")
 async def next_day(callback: CallbackQuery):
 
     global day_offset
-    day_offset = normalize_offset(day_offset + 1)
+    day_offset = normalize_day_offset(day_offset + 1)
     current_weekday = datetime.today().weekday()
-    day_of_week = to_key[(current_weekday + day_offset) % 7]
-    media = InputMediaPhoto(media=rs.days_id[day_of_week])
+    day_of_week = num_to_weekday((current_weekday + day_offset) % 7)
+    media = InputMediaPhoto(media=days_map[day_of_week])
 
     await callback.answer(
         f"Displaying the schedule for {day_of_week.lower()}", show_alert=False
@@ -161,10 +98,10 @@ async def next_day(callback: CallbackQuery):
 async def next_day(callback: CallbackQuery):
 
     global day_offset
-    day_offset = normalize_offset(day_offset - 1)
+    day_offset = normalize_day_offset(day_offset - 1)
     current_weekday = datetime.today().weekday()
-    day_of_week = to_key[(current_weekday + day_offset) % 7]
-    media = InputMediaPhoto(media=rs.days_id[day_of_week])
+    day_of_week = num_to_weekday((current_weekday + day_offset) % 7)
+    media = InputMediaPhoto(media=days_map[day_of_week])
 
     await callback.answer(
         f"Displaying the schedule for {day_of_week.lower()}", show_alert=False
@@ -176,10 +113,6 @@ async def next_day(callback: CallbackQuery):
     )
 
 
-# endregion
-
-
-# region Unnecessary
 def is_cat_keyword(message: types.Message, keywords: list) -> bool:
     return any(keyword in message.text.upper() for keyword in keywords)
 
@@ -204,10 +137,6 @@ async def kitten_send(message: types.Message):
         await message.reply(image_url)
 
 
-# endregion
-
-
-# region utilities
 @router.message(F.photo)
 async def photo_id(message: Message):
     await message.reply(f"ID: {message.photo[-1].file_id}")
@@ -218,10 +147,6 @@ async def photo_id(message: Message):
     await message.reply(f"ID: {message.video.file_id}")
 
 
-# endregion
-
-
-# region Unfinished and Useless
 """
 #for whatever reason this handler was replying to things that other ones should've caught
 @router.message()
@@ -248,4 +173,3 @@ __underline__
 [inline URL](http://www.example.com/)
 [inline mention of a user](tg://user?id=123456789)
 """
-# endregion
