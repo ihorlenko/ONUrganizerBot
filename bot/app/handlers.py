@@ -10,10 +10,10 @@ from aiogram import types
 from dotenv import load_dotenv
 from datetime import datetime
 
-from bot.config import fetch_image_url
-from .builders import build_inline_days_kb
-import bot.app.keyboards as kb
-from .utils.helpers import str_today, num_to_weekday, normalize_day_offset
+from config import fetch_image_url
+from app.builders import build_inline_days_kb
+import app.keyboards as kb
+from app.utils.helpers import str_today, num_to_weekday, normalize_day_offset
 
 router = Router()
 global session
@@ -61,7 +61,7 @@ async def bye_command(message: Message):
 
 @router.callback_query(
     F.data.in_(days_map.keys())
-)  # the keys are all weekdays + 'the week'
+)
 async def schedule_reply(callback: CallbackQuery):
     day = callback.data
     media = InputMediaPhoto(media=days_map[day])
@@ -146,30 +146,3 @@ async def photo_id(message: Message):
 async def photo_id(message: Message):
     await message.reply(f"ID: {message.video.file_id}")
 
-
-"""
-#for whatever reason this handler was replying to things that other ones should've caught
-@router.message()
-async def default_handler(message: Message):
-    await message.reply("I didn't understand that\\. Please use the command or type *'Help'* for assistance\\."
-                    , parse_mode=ParseMode.MARKDOWN_V2)
-"""
-
-"""
-#God be my witness, I tried to make it work
-@router.message(F.text.re.compile(r'\bBYE\b', re.IGNORECASE).match('BYE'))
-async def bye_command(message: Message):
-    await message.reply('See ya!')
-"""
-
-
-"""
-↓↓↓ MarkdownV2 syntax apparently
-*bold \*text*
-_italic \*text_
-__underline__
-~strikethrough~
-*bold _italic bold ~italic bold strikethrough~ __underline italic bold___ bold*
-[inline URL](http://www.example.com/)
-[inline mention of a user](tg://user?id=123456789)
-"""
