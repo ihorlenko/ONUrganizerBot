@@ -1,5 +1,7 @@
 from datetime import datetime as dt
 
+from aiogram import types
+
 
 def num_to_weekday(num: int):
     """Converts weekday number to its name"""
@@ -20,3 +22,7 @@ def normalize_day_offset(offset):
     """
 
     return (offset % 7 + 7) % 7
+
+
+def is_cat_keyword(message: types.Message, keywords: list) -> bool:
+    return any(keyword in message.text.upper() for keyword in keywords)
