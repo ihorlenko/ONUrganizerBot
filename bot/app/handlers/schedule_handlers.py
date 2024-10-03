@@ -1,48 +1,40 @@
 from os import getenv
-import random
 import json
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, InputMediaPhoto
-from aiogram import types
 
 from dotenv import load_dotenv
 from datetime import datetime
 
-from config import fetch_image_url
 from app.builders import build_inline_days_kb
 import app.keyboards as kb
 from app.utils.helpers import str_today, num_to_weekday, normalize_day_offset
 
-router = Router()
-global session
+schedule_router = Router()
 
 load_dotenv()
-API_KEY = getenv("GOOGLE_TOKEN")
-CX = getenv("SE_ID")
 
-with open('bot/resources/search_prompts.json', 'r') as f1, \
-        open('bot/resources/days_id.json', 'r') as f2:
-    SEARCH_PROMPTS = json.load(f1)
-    days_map = json.load(f2)
+with open('bot/resources/days_id.json', 'r') as f:
+    days_map = json.load(f)
 
 
-@router.message(CommandStart())
+@schedule_router.message(CommandStart())
 async def welcome_msg(message: Message):
     await message.answer(
         f"Hello, choose one of the options below", reply_markup=kb.main
     )
 
 
-@router.message(F.text.lower() == "schedule")
+@schedule_router.message(F.text.lower() == "schedule")
 async def schedule_command(message: Message):
     await message.answer_photo(
         days_map["the week"], reply_markup=await build_inline_days_kb()
     )
 
 
-@router.message(F.text.lower() == "schedulev2")
+@schedule_router.message(F.text.lower() == "schedulev2")
 async def schedule_command(message: Message):
     day_of_week = str_today()
     with open('bot/resources/days_id.json', 'r') as f:
@@ -51,7 +43,7 @@ async def schedule_command(message: Message):
     await message.answer_photo(day_id, reply_markup=kb.np_weekdays)
 
 
-@router.message(F.text.lower() == "bye")
+@schedule_router.message(F.text.lower() == "bye")
 async def bye_command(message: Message):
     await message.reply_sticker(
         "CAACAgIAAxkBAAEFgZZjAAGIEnFk7nzv_wGBIfFyGHdS_XsAAhYAAwC5MAEl49O0W54M1R8E"
@@ -59,7 +51,7 @@ async def bye_command(message: Message):
     await message.reply("Fare thee well, foreordained straggler")
 
 
-@router.callback_query(
+@schedule_router.callback_query(
     F.data.in_(days_map.keys())
 )
 async def schedule_reply(callback: CallbackQuery):
@@ -75,7 +67,7 @@ async def schedule_reply(callback: CallbackQuery):
     )
 
 
-@router.callback_query(F.data == "next")
+@schedule_router.callback_query(F.data == "next")
 async def next_day(callback: CallbackQuery):
 
     global day_offset
@@ -94,7 +86,7 @@ async def next_day(callback: CallbackQuery):
     )
 
 
-@router.callback_query(F.data == "prev")
+@schedule_router.callback_query(F.data == "prev")
 async def next_day(callback: CallbackQuery):
 
     global day_offset
@@ -113,36 +105,8 @@ async def next_day(callback: CallbackQuery):
     )
 
 
-def is_cat_keyword(message: types.Message, keywords: list) -> bool:
-    return any(keyword in message.text.upper() for keyword in keywords)
-
-
-cat_keys = ["CAT", "KITTEN", "KITTY", "CATS", "KITTENS"]
-
-
-@router.message(lambda message: is_cat_keyword(message, cat_keys))
-async def kitten_send(message: types.Message):
-    prompt = random.choice(SEARCH_PROMPTS)
-    image_url = await fetch_image_url(session, prompt, API_KEY, CX)
-    if image_url.startswith("http"):
-        try:
-            async with session.get(image_url) as response:
-                if response.status == 200:
-                    await message.reply_photo(image_url)
-                else:
-                    await message.reply("Image URL is not accessible")
-        except Exception as e:
-            await message.reply(f"Error fetching image: {e}")
-    else:
-        await message.reply(image_url)
-
-
-@router.message(F.photo)
+@schedule_router.message(F.photo)
 async def photo_id(message: Message):
     await message.reply(f"ID: {message.photo[-1].file_id}")
 
-
-@router.message(F.video)
-async def photo_id(message: Message):
-    await message.reply(f"ID: {message.video.file_id}")
 
