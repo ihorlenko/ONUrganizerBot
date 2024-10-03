@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import asyncio
 from aiogram import Bot, Dispatcher
-from app.handlers import router
+from app.routers import setup_router
 
 
 load_dotenv()
@@ -13,6 +13,7 @@ dp = Dispatcher()
 
 
 async def main():
+    router = setup_router()
     dp.include_router(router)
     await dp.start_polling(bot)
 
