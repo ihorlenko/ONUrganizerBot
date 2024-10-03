@@ -1,6 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton
-from .utils.helpers import num_to_weekday
+from app.utils.helpers import num_to_weekday
 
 
 async def build_inline_days_kb():
@@ -8,6 +8,6 @@ async def build_inline_days_kb():
     weekdays = [num_to_weekday(day) for day in range(2, 8)]
 
     for day in weekdays:
-        kb.add(InlineKeyboardButton(text=day))
-    kb.add(InlineKeyboardButton(text="The Week"))
+        kb.add(InlineKeyboardButton(text=day, callback_data=day))
+    kb.add(InlineKeyboardButton(text="The Week", callback_data='the week'))
     return kb.adjust(2).as_markup()
