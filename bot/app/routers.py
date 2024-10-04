@@ -1,6 +1,5 @@
 from aiogram import Router
-from bot.app.handlers.schedule_handlers import schedule_router
-from handlers.cat_handlers import cat_router
+from app.handlers.schedule_handlers import schedule_router
 
 def setup_router():
     router = Router()
