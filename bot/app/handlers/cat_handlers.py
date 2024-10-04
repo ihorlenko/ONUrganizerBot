@@ -3,9 +3,6 @@ import random
 from aiogram import Router
 from aiogram import types
 
-from config import fetch_image_url
-from utils.helpers import is_cat_keyword
-
 cat_router = Router()
 
 

@@ -2,28 +2,16 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
-    KeyboardButton,
+    KeyboardButton as KB,
 )
 
 
 main = ReplyKeyboardMarkup(
-    keyboard=[[KeyboardButton(text="Schedule"), KeyboardButton(text="ScheduleV2")]],
+    keyboard=[
+        [KB(text="Monday"), KB(text="Tuesday"), KB(text="Wednesday")],
+        [KB(text="Thursday"), KB(text="Friday"), KB(text="Saturday")],
+        [KB(text="Today")],
+    ],
     resize_keyboard=True,
     input_field_placeholder="Choose option",
-)
-
-inline = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [InlineKeyboardButton(text="Google", url="https://google.com")],
-        [InlineKeyboardButton(text="Youtube", url="https://youtube.com")],
-    ]
-)
-
-np_weekdays = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Previous", callback_data="prev"),
-            InlineKeyboardButton(text="Next", callback_data="next"),
-        ]
-    ]
 )
