@@ -1,112 +1,122 @@
-from os import getenv
-import json
+from typing import TYPE_CHECKING
+from dotenv import load_dotenv
+from datetime import datetime as dt
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, InputMediaPhoto
+from aiogram.types import Message
+from aiogram.fsm.context import FSMContext
 
-from dotenv import load_dotenv
-from datetime import datetime
-
-from app.builders import build_inline_days_kb
 import app.keyboards as kb
-from app.utils.helpers import str_today, num_to_weekday, normalize_day_offset
+from app.utils.helpers import load_schedule_from_yaml
+from config import bot
 
-schedule_router = Router()
+from aiogram import types
+from aiogram.enums.parse_mode import ParseMode
+from models.models import WeeklySchedule
+from models.models import DailySchedule
+from aiogram.utils.text_decorations import markdown_decoration
+
+schedule_path = "./bot/resources/schedule.yaml"
+schedule_router: Router = Router()
+weekly_schedule: WeeklySchedule = load_schedule_from_yaml(schedule_path)
 
 load_dotenv()
 
-with open('bot/resources/days_id.json', 'r') as f:
-    days_map = json.load(f)
+def escape_md(*content, sep=" "):
+    def _join(*content, sep=" "):
+        return sep.join(map(str, content))
+    return markdown_decoration.quote(_join(*content, sep=sep))
+
+bells = [
+    "08:00",
+    "09:30",
+    "11:20",
+    "12:50",
+    "14:20",
+    "15:50",
+]
+
+last_messages = {}
+
+def format_schedule_for_day(daily_schedule: DailySchedule) -> str:
+    result = []
+    result.append(f"*{escape_md(daily_schedule.day.upper())}:*\n")
+    classes = daily_schedule.classes
+    
+    for university_class in sorted(classes, key=lambda c: c.class_time.start_time):
+        subject = escape_md(university_class.subject.name)
+        teacher = escape_md(university_class.subject.teacher.name)
+        class_type = escape_md(university_class.class_type.class_type)
+        start_time = escape_md(university_class.class_time.start_time.strftime('%H:%M'))
+        end_time = escape_md(university_class.class_time.end_time.strftime('%H:%M'))
+        classroom = university_class.classroom.room_number
+
+        class_order = bells.index(start_time) + 1
+
+        classroom = f"{escape_md(classroom)} аудиторії" if classroom != "online" else "online"
+        class_type = "Лекція" if class_type == "lecture" else "Практика"
+        class_type += " в" if classroom != "online" else ""
+        
+        teacher_name = escape_md(university_class.subject.teacher.name)
+        if university_class.subject.teacher.link:
+            teacher = f"[{teacher_name}]({university_class.subject.teacher.link})"
+        else:
+            teacher = teacher_name
+        
+        subgroups_emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣"]
+        subgroups = list(map(lambda s: subgroups_emojis[s.number - 1], university_class.subgroups))
+        subgroups = ', '.join(subgroups)
+        subgroups = escape_md(subgroups)
+        
+        result.append(
+            f"*{class_order} пара:* {start_time}\-{end_time}\n"
+            f"*{subject}* \- {teacher}\n"
+            f"{class_type} {classroom}\n"
+            f"*Підгрупи:* {subgroups}")
+        
+        result.append("")
+
+    return "\n".join(result)
 
 
 @schedule_router.message(CommandStart())
 async def welcome_msg(message: Message):
     await message.answer(
-        f"Hello, choose one of the options below", reply_markup=kb.main
+        f"Привіт!👋 Я - бот 122 спеціальності\nНа який день показати розклад?", reply_markup=kb.main
     )
 
 
-@schedule_router.message(F.text.lower() == "schedule")
-async def schedule_command(message: Message):
-    await message.answer_photo(
-        days_map["the week"], reply_markup=await build_inline_days_kb()
-    )
-
-
-@schedule_router.message(F.text.lower() == "schedulev2")
-async def schedule_command(message: Message):
-    day_of_week = str_today()
-    with open('bot/resources/days_id.json', 'r') as f:
-        day_id = json.load(f).get(day_of_week.lower())
-
-    await message.answer_photo(day_id, reply_markup=kb.np_weekdays)
-
-
-@schedule_router.message(F.text.lower() == "bye")
-async def bye_command(message: Message):
-    await message.reply_sticker(
-        "CAACAgIAAxkBAAEFgZZjAAGIEnFk7nzv_wGBIfFyGHdS_XsAAhYAAwC5MAEl49O0W54M1R8E"
-    )
-    await message.reply("Fare thee well, foreordained straggler")
-
-
-@schedule_router.callback_query(
-    F.data.in_(days_map.keys())
-)
-async def schedule_reply(callback: CallbackQuery):
-    day = callback.data
-    media = InputMediaPhoto(media=days_map[day])
-    await callback.answer(
-        f"Displaying the schedule for {day.lower()}", show_alert=False
-    )
-    await callback.message.edit_media(
-        media=media,
-        caption=f"Schedule for {day.capitalize()}",
-        reply_markup=await build_inline_days_kb(),
-    )
-
-
-@schedule_router.callback_query(F.data == "next")
-async def next_day(callback: CallbackQuery):
-
-    global day_offset
-    day_offset = normalize_day_offset(day_offset + 1)
-    current_weekday = datetime.today().weekday()
-    day_of_week = num_to_weekday((current_weekday + day_offset) % 7)
-    media = InputMediaPhoto(media=days_map[day_of_week])
-
-    await callback.answer(
-        f"Displaying the schedule for {day_of_week.lower()}", show_alert=False
-    )
-    await callback.message.edit_media(
-        media=media,
-        caption=f"Schedule for {day_of_week.capitalize()}",
-        reply_markup=kb.np_weekdays,
-    )
-
-
-@schedule_router.callback_query(F.data == "prev")
-async def next_day(callback: CallbackQuery):
-
-    global day_offset
-    day_offset = normalize_day_offset(day_offset - 1)
-    current_weekday = datetime.today().weekday()
-    day_of_week = num_to_weekday((current_weekday + day_offset) % 7)
-    media = InputMediaPhoto(media=days_map[day_of_week])
-
-    await callback.answer(
-        f"Displaying the schedule for {day_of_week.lower()}", show_alert=False
-    )
-    await callback.message.edit_media(
-        media=media,
-        caption=f"Schedule for {day_of_week.capitalize()}",
-        reply_markup=kb.np_weekdays,
-    )
-
-
-@schedule_router.message(F.photo)
-async def photo_id(message: Message):
-    await message.reply(f"ID: {message.photo[-1].file_id}")
-
-
+@schedule_router.message(lambda message: message.text.lower() in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
+async def send_or_edit_schedule(message: types.Message, state: FSMContext):
+    day_of_week = message.text.capitalize()
+    daily_schedule = next((schedule for schedule in weekly_schedule.daily_schedules if schedule.day == day_of_week), None)
+    
+    if daily_schedule:
+        schedule_text = format_schedule_for_day(daily_schedule)
+        
+        if message.from_user.id in last_messages:
+            try:
+                await bot.edit_message_text(
+                    text=schedule_text, 
+                    chat_id=message.chat.id, 
+                    message_id=last_messages[message.from_user.id],
+                    parse_mode=ParseMode.MARKDOWN_V2, 
+                    disable_web_page_preview=True
+                )
+            except:
+                msg = await message.answer(
+                    schedule_text, 
+                    parse_mode=ParseMode.MARKDOWN_V2, 
+                    disable_web_page_preview=True
+                )
+                last_messages[message.from_user.id] = msg.message_id
+        else:
+            msg = await message.answer(
+                schedule_text, 
+                parse_mode=ParseMode.MARKDOWN_V2, 
+                disable_web_page_preview=True
+            )
+            last_messages[message.from_user.id] = msg.message_id
+    else:
+        await message.reply(f"Розклад на {day_of_week} не знайдено.", parse_mode=ParseMode.MARKDOWN_V2)
