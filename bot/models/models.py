@@ -56,14 +56,15 @@ class WeeklySchedule(BaseModel):
         return v
 
 
-def load_schedule_from_yaml(file_path: str) -> WeeklySchedule:
-    with open(file_path, 'r', encoding='utf-8') as file:
-        yaml_data = yaml.safe_load(file)
-    
-    weekly_schedule = WeeklySchedule.parse_obj(yaml_data)
-    
-    return weekly_schedule
-
 if __name__ == "__main__":
+
+    def load_schedule_from_yaml(file_path: str) -> WeeklySchedule:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            yaml_data = yaml.safe_load(file)
+        
+        weekly_schedule = WeeklySchedule.parse_obj(yaml_data)
+        
+        return weekly_schedule
+
     schedule = load_schedule_from_yaml('bot/resources/schedule.yaml')
-    print(schedule)
+    print(schedule.daily_schedules[2])
