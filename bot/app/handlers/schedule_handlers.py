@@ -1,13 +1,13 @@
-from typing import TYPE_CHECKING
+
 from dotenv import load_dotenv
-from datetime import datetime as dt
-import asyncio
+
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import Message, InputMediaPhoto
 from aiogram.fsm.context import FSMContext
 
 import app.keyboards as kb
+import asyncio
 from app.utils.helpers import load_schedule_from_yaml
 from config import bot
 
@@ -19,11 +19,13 @@ from aiogram.utils.text_decorations import markdown_decoration
 
 from app.keyboards import group
 
+
 last_day = ""
 
 schedule_path = "./bot/resources/schedule.yaml"
 schedule_router: Router = Router()
 weekly_schedule: WeeklySchedule = load_schedule_from_yaml(schedule_path)
+
 
 load_dotenv()
 
@@ -90,7 +92,6 @@ async def welcome_msg(message: Message):
         f"Привіт!👋 Я - бот 122 спеціальності\nНа який день показати розклад?", reply_markup=kb.main
     )
 
-
 @schedule_router.message(lambda message: message.text.lower() in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
 async def send_or_edit_schedule(message: types.Message, state: FSMContext):
     global last_day
@@ -117,12 +118,13 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
                     reply_markup=group
                 )
             except Exception as e:
-                print(f"Error editing message: {e}")
+                #print(f"Error editing message: {e}")
                 msg = await message.answer(
                     schedule_text,
                     parse_mode=ParseMode.MARKDOWN_V2,
                     disable_web_page_preview=True,
                     reply_markup=group
+
 
                 )
                 last_messages[message.from_user.id] = msg.message_id
@@ -136,3 +138,10 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
             last_messages[message.from_user.id] = msg.message_id
     else:
         await message.reply(f"Розклад на {day_of_week} не знайдено.", parse_mode=ParseMode.MARKDOWN_V2)
+
+
+cat_image = "AgACAgIAAxkBAAIE1mcBcvxkV4LTuIX9NAcq7f-qlEnqAAKQ6TEbjy4JSBVVh2TtcYx1AQADAgADeQADNgQ"
+
+@schedule_router.message(F.text.lower() == 'saturday')
+async def cat_reply(message: types.Message):
+    await message.reply_photo(cat_image)
