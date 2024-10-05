@@ -141,7 +141,6 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
 
 
 cat_image = "AgACAgIAAxkBAAIE1mcBcvxkV4LTuIX9NAcq7f-qlEnqAAKQ6TEbjy4JSBVVh2TtcYx1AQADAgADeQADNgQ"
-
 @schedule_router.message(F.text.lower() == 'saturday')
 async def cat_reply(message: types.Message):
     await message.reply_photo(cat_image)
