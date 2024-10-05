@@ -102,55 +102,22 @@ async def photo_id(message: Message):
     await message.reply(f'ID: {message.photo[-1].file_id}')
 
 
-cat_images = ["AgACAgIAAxkBAAIFlGcBfKya8Jo5haHpBhYU-KoCEERgAAIa6DEb_QQISGnc7OHhKdQDAQADAgADeQADNgQ"
-    , "AgACAgIAAxkBAAIFb2cBe-a1Xs9OuiBY6hXwe63_uhGyAAIR6DEb_QQISGF12IuC7QldAQADAgADeQADNgQ"
-              ]
-
-
-@schedule_router.message(
-    lambda message: message.text.lower() in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'])
+@schedule_router.message(lambda message: message.text.lower() in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
 async def send_or_edit_schedule(message: types.Message, state: FSMContext):
-    cat_image = random.choice(cat_images)
     global last_day
     if message.text.lower() == last_day:
         await bot.delete_message(message.chat.id, message.message_id)
         return
+    last_day = message.text.lower()
     await bot.delete_message(message.chat.id, message.message_id)
     day_of_week = message.text.capitalize()
-
-    if day_of_week == "Saturday":
-        if message.from_user.id in last_messages:
-            try:
-                await bot.delete_message(
-                    chat_id=message.chat.id,
-                    message_id=last_messages[message.from_user.id]
-                )
-            except Exception as e:
-                print(f"Error deleting message: {e}")
-
-        msg = await bot.send_photo(
-            chat_id=message.chat.id,
-            photo=cat_image
-        )
-        last_day = message.text.lower()
-        last_messages[message.from_user.id] = msg.message_id
-        return
-
-    daily_schedule = next((schedule for schedule in weekly_schedule.daily_schedules if schedule.day == day_of_week),
-                          None)
+    daily_schedule = next((schedule for schedule in weekly_schedule.daily_schedules if schedule.day == day_of_week), None)
 
     if daily_schedule:
         schedule_text = format_schedule_for_day(daily_schedule)
 
         if message.from_user.id in last_messages:
-            if last_day.lower() == 'saturday':
-                try:
-                    await bot.delete_message(
-                        chat_id=message.chat.id,
-                        message_id=last_messages[message.from_user.id]
-                    )
-                except Exception as e:
-                    print(f"Error deleting message: {e}")
+
             try:
                 await bot.edit_message_text(
                     text=schedule_text,
@@ -161,11 +128,14 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
                     reply_markup=group
                 )
             except Exception as e:
+                #print(f"Error editing message: {e}")
                 msg = await message.answer(
                     schedule_text,
                     parse_mode=ParseMode.MARKDOWN_V2,
                     disable_web_page_preview=True,
                     reply_markup=group
+
+
                 )
                 last_messages[message.from_user.id] = msg.message_id
         else:
@@ -173,9 +143,8 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
                 schedule_text,
                 parse_mode=ParseMode.MARKDOWN_V2,
                 disable_web_page_preview=True,
-                reply_markup=group
+                    reply_markup=group
             )
             last_messages[message.from_user.id] = msg.message_id
-        last_day = message.text.lower()
     else:
         await message.reply(f"Розклад на {day_of_week} не знайдено.", parse_mode=ParseMode.MARKDOWN_V2)
