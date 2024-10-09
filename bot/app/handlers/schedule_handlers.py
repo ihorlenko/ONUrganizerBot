@@ -1,6 +1,7 @@
 import random
 
 from dotenv import load_dotenv
+from loguru import logger
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart
@@ -28,6 +29,8 @@ weekly_schedule: WeeklySchedule = load_schedule_from_yaml(schedule_path)
 
 load_dotenv()
 
+logger.add("bot.log", rotation="1 MB", level="INFO")
+
 
 def escape_md(*content, sep=" "):
     def _join(*content, sep=" "):
@@ -49,6 +52,7 @@ last_messages = {}
 
 
 def format_schedule_for_day(daily_schedule: DailySchedule) -> str:
+    logger.info(f"Formatting schedule for day: {daily_schedule.day}")
     result = []
     result.append(f"*{escape_md(daily_schedule.day.upper())}:*\n")
     classes = daily_schedule.classes
@@ -91,6 +95,12 @@ def format_schedule_for_day(daily_schedule: DailySchedule) -> str:
 
 @schedule_router.message(CommandStart())
 async def welcome_msg(message: Message):
+    logger.info(f"Received /start command from user: {message.from_user.id}")
+    if message.from_user.id in last_messages:
+        try:
+            await bot.delete_message(message.chat.id, last_messages[message.from_user.id])
+        except Exception as e:
+            logger.error(f"Error deleting previous message: {e}")
     await message.answer(
         f"Привіт!👋 Я - бот 122 спеціальності\nНа який день показати розклад?", reply_markup=kb.main
     )
@@ -99,13 +109,16 @@ async def welcome_msg(message: Message):
 # utility handler
 @schedule_router.message(F.photo)
 async def photo_id(message: Message):
+    logger.info(f"Received photo from user: {message.from_user.id}")
     await message.reply(f'ID: {message.photo[-1].file_id}')
 
 
 @schedule_router.message(lambda message: message.text.lower() in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'])
 async def send_or_edit_schedule(message: types.Message, state: FSMContext):
     global last_day
+    logger.info(f"User {message.from_user.id} requested schedule for: {message.text}")
     if message.text.lower() == last_day:
+        logger.info(f"Same day requested ({last_day}), deleting message.")
         await bot.delete_message(message.chat.id, message.message_id)
         return
     last_day = message.text.lower()
@@ -117,7 +130,6 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
         schedule_text = format_schedule_for_day(daily_schedule)
 
         if message.from_user.id in last_messages:
-
             try:
                 await bot.edit_message_text(
                     text=schedule_text,
@@ -127,15 +139,14 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
                     disable_web_page_preview=True,
                     reply_markup=group
                 )
+                logger.info(f"Edited schedule message for user: {message.from_user.id}")
             except Exception as e:
-                #print(f"Error editing message: {e}")
+                logger.error(f"Error editing message: {e}")
                 msg = await message.answer(
                     schedule_text,
                     parse_mode=ParseMode.MARKDOWN_V2,
                     disable_web_page_preview=True,
                     reply_markup=group
-
-
                 )
                 last_messages[message.from_user.id] = msg.message_id
         else:
@@ -143,8 +154,9 @@ async def send_or_edit_schedule(message: types.Message, state: FSMContext):
                 schedule_text,
                 parse_mode=ParseMode.MARKDOWN_V2,
                 disable_web_page_preview=True,
-                    reply_markup=group
+                reply_markup=group
             )
             last_messages[message.from_user.id] = msg.message_id
     else:
+        logger.warning(f"Schedule for {day_of_week} not found for user: {message.from_user.id}")
         await message.reply(f"Розклад на {day_of_week} не знайдено.", parse_mode=ParseMode.MARKDOWN_V2)
