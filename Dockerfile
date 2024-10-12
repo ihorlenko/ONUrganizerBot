@@ -7,4 +7,4 @@ RUN pip install poetry && poetry install --no-root
 
 COPY . .
 
-CMD ["poetry", "run", "python", "bot/bot.py"]
+CMD ["poetry", "run", "python", "bot/run.py"]
