@@ -16,6 +16,8 @@ main = ReplyKeyboardMarkup(
     resize_keyboard=True,
     input_field_placeholder="Choose option",
 )
+
+
 group = InlineKeyboardMarkup(
     inline_keyboard=[
         [IKB(text = "1", callback_data="first"),IKB(text="2", callback_data="second")],

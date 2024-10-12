@@ -1,0 +1,15 @@
+version: '3'
+services:
+  telegram_bot:
+    build:
+      context: .
+    image: onubot
+    container_name: onubot
+    environment:
+      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
+    networks:
+      - bot_network
+
+networks:
+  bot_network:
+    driver: bridge
