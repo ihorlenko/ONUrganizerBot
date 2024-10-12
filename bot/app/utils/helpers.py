@@ -3,9 +3,14 @@ from datetime import datetime as dt
 from loguru import logger
 
 from aiogram.utils.text_decorations import markdown_decoration
+import resources.translations as tr
 
 from models.models import WeeklySchedule, DailySchedule
 
+
+
+def translate(word: str,  dictionary: dict) -> str:
+    return  dictionary.get(word.lower(), word.lower())
 
 bells = [
     "08:00",
@@ -41,7 +46,7 @@ def escape_md(*content, sep=" "):
 def format_schedule_for_day(daily_schedule: DailySchedule) -> str:
     logger.info(f"Formatting schedule for day: {daily_schedule.day}")
     result = []
-    result.append(f"*{escape_md(daily_schedule.day.upper())}:*\n")
+    result.append(f"*{escape_md(translate(daily_schedule.day, tr.reverse_day_translation).upper())}:*\n")
     classes = daily_schedule.classes
 
     for university_class in sorted(classes, key=lambda c: c.class_time.start_time):
