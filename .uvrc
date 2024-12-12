@@ -1,0 +1,8 @@
+# uv configuration for ONUrganizerBot
+# This file configures uv for this project
+
+# Use Python 3.12 as the default Python version
+python-version = "3.12"
+
+# Create virtual environment in .venv directory
+venv-location = ".venv"

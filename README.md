@@ -9,7 +9,9 @@ ONUrganizerBot is a Telegram bot designed to help students of Odesa National Uni
 
 ## Installation 🛠️
 
-To set up ONUrganizerBot, you will need Docker and Docker Compose. Follow these steps:
+To set up ONUrganizerBot, you have two options:
+
+### Option 1: Using Docker (Recommended) 🐳
 
 1. **Clone the repository**:
 
@@ -30,6 +32,36 @@ To set up ONUrganizerBot, you will need Docker and Docker Compose. Follow these 
 
    ```sh
    docker-compose up --build
+   ```
+
+### Option 2: Using uv (For Development) ⚡
+
+1. **Clone the repository**:
+
+   ```sh
+   git clone https://github.com/ihorlenko/ONUrganizerBot.git
+   cd ONUrganizerBot
+   ```
+
+2. **Install uv** if you haven't already:
+
+   ```sh
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+3. **Create an `.env` file** with your bot token and other environment variables:
+
+   ```env
+   TELEGRAM_TOKEN=your_telegram_bot_token_here
+   ```
+
+4. **Create an `./bot/resources/schedule.yaml` file** and populate it with your current schedule.
+
+5. **Install dependencies and run the bot**:
+
+   ```sh
+   uv sync
+   uv run python bot/run.py
    ```
 
 ## Usage 🚀
